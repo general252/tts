@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>tts</title>
+
+	<style>
+		.primary {
+			width: 100px;
+			height: 40px;
+		}
+
+		#msg {
+			background-color: #eee;
+		}
+	</style>
+</head>
+
+<body>
+	<p>
+		<textarea id="ttsText" cols="120" rows="20"></textarea>
+	</p>
+
+	<p>
+		<select id="voiceSelect"></select>
+		<input type="checkbox" id="onlyCN" checked>only zh-CN <br>
+	</p>
+
+	<p>
+		<button class="primary" onclick="list()"> 语音列表 </button>
+		<button class="primary" onclick="play()"> 播放 </button>
+		<button class="primary" onclick="cancel()"> 取消 </button>
+	</p>
+
+	<div id="msg"></div>
+
+</body>
+
+</html>
+
+<script>
+	var voices = [];
+
+	window.onload = function () {
+		document.getElementById("ttsText").value =
+			"1975年二、三月间，一个平平常常的日子，细蒙蒙的雨丝夹着一星半点的雪花，正纷纷淋淋地向大地飘洒着。时令已快到惊蛰，雪当然再不会存留，往往还没等落地，就已经消失得无踪无影了。黄土高原严寒而漫长的冬天看来就要过去，但那真正温暖的春天还远远地没有到来。";
+
+		list();
+		setTimeout(() => {
+			showMsg("getVoices");
+			list();
+		}, 10);
+	};
+
+	function list() {
+		if (typeof speechSynthesis === 'undefined') {
+			return;
+		}
+
+		var onlyCN = document.getElementById('onlyCN').checked;
+
+		// "Microsoft Huihui - Chinese (Simplified, PRC)"
+		// "Microsoft Yunxi Online (Natural) - Chinese (Mainland)"
+		// "Microsoft Yaoyao - Chinese (Simplified, PRC)"
+
+		var voiceSelect = document.getElementById('voiceSelect');
+		voiceSelect.options.length = 0;
+
+		voices = speechSynthesis.getVoices();
+		for (var i = 0; i < voices.length; i++) {
+			console.log(voices[i]);
+			if (onlyCN) {
+				if (voices[i].lang !== "zh-CN") {
+					continue;
+				}
+			}
+
+			var option = document.createElement('option');
+			option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
+			option.setAttribute('data-lang', voices[i].lang);
+			option.setAttribute('data-name', voices[i].name);
+			if (voices[i].name === "Microsoft Yaoyao - Chinese (Simplified, PRC)") {
+				option.selected = true;
+			}
+			voiceSelect.appendChild(option);
+		}
+
+	}
+
+	function showMsg(msg) {
+		document.getElementById("msg").innerText = msg;
+	}
+
+	function play() {
+		showMsg("play");
+		var ttsText = document.getElementById("ttsText").value;
+
+		var utterThis = new SpeechSynthesisUtterance();
+
+		utterThis.onstart = function (event) {
+			showMsg("onstart: " + JSON.stringify(event));
+			console.log("onstart", event);
+		}
+		utterThis.onerror = function (event) {
+			showMsg("onerror: " + JSON.stringify(event));
+			console.log("onerror", event);
+		}
+		utterThis.onend = (event) => {
+			showMsg("onend: " + JSON.stringify(event));
+			console.log("onend", event);
+		}
+
+		utterThis.text = ttsText;
+		utterThis.lang = "zh-cn";
+		utterThis.volume = 1; //  [0, 1]
+		utterThis.rate = 1.0; // 语速 [0.1, 10]
+		utterThis.pitch = 1; // 音高 [0, 2]
+
+		var selectedOption = document.getElementById('voiceSelect').selectedOptions[0].getAttribute('data-name');
+		for (i = 0; i < voices.length; i++) {
+			if (voices[i].name === selectedOption) {
+				utterThis.voice = voices[i];
+			}
+		}
+
+		/*
+		text – 要合成的文字内容，字符串。
+		lang – 使用的语言，字符串， 例如："zh-cn"
+		voiceURI – 指定希望使用的声音和服务，字符串。
+		volume – 声音的音量，区间范围是0到1，默认是1。
+		rate – 语速，数值，默认值是1，范围是0.1到10，表示语速的倍数，例如2表示正常语速的两倍。
+		pitch – 表示说话的音高，数值，范围从0（最小）到2（最大）。默认值为1。
+
+		onstart – 语音合成开始时候的回调。
+		onpause – 语音合成暂停时候的回调。
+		onresume – 语音合成重新开始时候的回调。
+		onend – 语音合成结束时候的回调。
+		*/
+
+
+		/*
+		speak() – 只能接收SpeechSynthesisUtterance作为唯一的参数，作用是读合成的话语。
+		stop() – 立即终止合成过程。
+		pause() – 暂停合成过程。
+		resume() – 重新开始合成过程。
+		getVoices – 此方法不接受任何参数，用来返回浏览器支持的语音包列表，是个数组
+		*/
+
+		speechSynthesis.speak(utterThis);
+	}
+
+	function cancel() {
+		showMsg("cancel");
+		speechSynthesis.cancel();
+	}
+</script>
